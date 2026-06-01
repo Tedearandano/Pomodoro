@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,11 +16,11 @@
       background: #2a2a2e; font-family: 'Syne', sans-serif;
       overflow: hidden; transition: background 0.5s;
     }
-    body.light        { background: #d8d6d0; }
+    body.light        { background: #ececec; }
     body.short        { background: #1e2c2a; }
-    body.light.short  { background: #c8e8e2; }
+    body.light.short  { background: #adcac5; }
     body.long         { background: #1e2435; }
-    body.light.long   { background: #ccdcf4; }
+    body.light.long   { background: #bacbe6; }
 
     #bg-layer  { position:fixed;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .6s;z-index:0; }
     #bg-layer.on { opacity:1; }
@@ -325,6 +324,10 @@
       <button class="sb active" data-sound="digital"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Digital</button>
       <button class="sb" data-sound="chime"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Carillón</button>
       <button class="sb" data-sound="pulse"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Pulso</button>
+      <button class="sb" data-sound="success"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Éxito</button>
+      <button class="sb" data-sound="double"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/></svg>Bip doble</button>
+      <button class="sb" data-sound="bowl"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10H2A10 10 0 0 1 12 2z"/><path d="M5 12a7 7 0 0 0 14 0"/><line x1="12" y1="22" x2="12" y2="20"/></svg>Cuenco zen</button>
+      <button class="sb" data-sound="ding"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Ding triple</button>
       <button class="sb" data-sound="none"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>Silencio</button>
     </div>
     <div class="vol-row">
@@ -414,6 +417,88 @@
     digital: ctx => { const t=ctx.currentTime,m=mkGain(ctx);[0,.22,.44,.66,.88].forEach(d=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(m);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(0.6,t+d+.03);g.gain.exponentialRampToValueAtTime(.001,t+d+.18);o.start(t+d);o.stop(t+d+.2);}); },
     chime:   ctx => { const t=ctx.currentTime,m=mkGain(ctx);[523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(m);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.22);g.gain.linearRampToValueAtTime(.5,t+i*.22+.05);g.gain.exponentialRampToValueAtTime(.001,t+i*.22+1.4);o.start(t+i*.22);o.stop(t+i*.22+1.5);}); },
     pulse:   ctx => { const t=ctx.currentTime,m=mkGain(ctx);for(let i=0;i<6;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(m);o.type='sine';o.frequency.value=i%2===0?660:880;g.gain.setValueAtTime(.5,t+i*.15);g.gain.exponentialRampToValueAtTime(.001,t+i*.15+.12);o.start(t+i*.15);o.stop(t+i*.15+.13);} },
+    // ── Funcionales ──
+    success: ctx => {
+      // Ascending 4-note achievement jingle
+      const t=ctx.currentTime, m=mkGain(ctx);
+      [[0,523.25],[0.18,659.25],[0.36,783.99],[0.54,1046.5]].forEach(([d,f])=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(m);o.type='triangle';o.frequency.value=f;
+        g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(0.55,t+d+.04);
+        g.gain.exponentialRampToValueAtTime(.001,t+d+.55);
+        o.start(t+d);o.stop(t+d+.6);
+      });
+    },
+    double: ctx => {
+      // Two soft gentle beeps
+      const t=ctx.currentTime, m=mkGain(ctx);
+      [0, 0.35].forEach(d=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(m);o.type='sine';o.frequency.value=740;
+        g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(0.45,t+d+.025);
+        g.gain.exponentialRampToValueAtTime(.001,t+d+.22);
+        o.start(t+d);o.stop(t+d+.25);
+      });
+    },
+    // ── Naturales ──
+    bowl: ctx => {
+      // Realistic singing bowl: inharmonic partials with staggered decays
+      // Real bowls have partials at roughly 1x, 2.76x, 5.4x, 8.93x the fundamental
+      const t = ctx.currentTime;
+      const master = mkGain(ctx);
+
+      // Strike transient — short thud via filtered noise
+      const bufSize = ctx.sampleRate * 0.08;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufSize, 3);
+      const noise = ctx.createBufferSource();
+      noise.buffer = buf;
+      const nf = ctx.createBiquadFilter();
+      nf.type = 'bandpass'; nf.frequency.value = 320; nf.Q.value = 2;
+      const ng = ctx.createGain();
+      noise.connect(nf); nf.connect(ng); ng.connect(master);
+      ng.gain.setValueAtTime(0.5*vol, t);
+      ng.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      noise.start(t); noise.stop(t + 0.1);
+
+      // Inharmonic partials (fundamental ~180 Hz, like a medium bowl)
+      const partials = [
+        { ratio:1,     amp:0.55, decay:4.5 },
+        { ratio:2.76,  amp:0.25, decay:2.8 },
+        { ratio:5.4,   amp:0.10, decay:1.6 },
+        { ratio:8.93,  amp:0.04, decay:0.9 },
+      ];
+      const fund = 180;
+      partials.forEach(({ratio, amp, decay}) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(master);
+        o.type = 'sine';
+        o.frequency.value = fund * ratio;
+        // Very slight pitch drop on attack (mallet hit effect)
+        o.frequency.setValueAtTime(fund * ratio * 1.004, t);
+        o.frequency.exponentialRampToValueAtTime(fund * ratio, t + 0.04);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(amp, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+        o.start(t); o.stop(t + decay + 0.1);
+      });
+    },
+    ding: ctx => {
+      // Three soft spaced dings
+      const t=ctx.currentTime, m=mkGain(ctx);
+      [0, 0.6, 1.2].forEach(d=>{
+        [880, 1760].forEach((f,i)=>{
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(m);o.type='sine';o.frequency.value=f;
+          const amp=i===0?0.45:0.18;
+          g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(amp,t+d+.008);
+          g.gain.exponentialRampToValueAtTime(.001,t+d+1.0);
+          o.start(t+d);o.stop(t+d+1.1);
+        });
+      });
+    },
     none: () => {}
   };
   function playSound(n) { if(n==='none') return; try { const c=getCtx(); c.state==='suspended'?c.resume().then(()=>sounds[n](c)):sounds[n](c); } catch(e){} }
