@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pomodoro</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -30,11 +31,16 @@
     /* layout: side-by-side on wide, stacked on narrow */
     .layout {
       position: relative; z-index: 2;
-      display: flex; gap: 16px; align-items: flex-start;
+      display: flex; gap: 10px; align-items: flex-start;
       justify-content: center;
       width: min(1080px, 98vw);
       padding: 16px;
     }
+    /* phantom spacer mirrors task panel so timer stays centred */
+    .spacer {
+      flex: 0 0 320px; width: 320px; pointer-events: none; visibility: hidden;
+    }
+    .spacer.hidden { flex: 0 0 0; width: 0; }
 
     /* ── Glass card ── */
     .card {
@@ -438,6 +444,7 @@
     </div>
   </div>
 
+  <div class="spacer" id="spacer"></div>
 </div><!-- /layout -->
 
 <!-- floating task panel toggle -->
@@ -686,12 +693,18 @@
     setTimeout(()=>{ startTimer(); }, 1000);
   }
 
+  let timerEndTime = 0; // absolute timestamp when timer should end
+
   function startTimer() {
     if(remaining===0) return;
     setPlayState(true);
-    iv=setInterval(()=>{
-      remaining--; updateDisplay();
-      if(remaining===0){
+    timerEndTime = Date.now() + remaining * 1000;
+    clearInterval(iv);
+    iv = setInterval(()=>{
+      const left = Math.round((timerEndTime - Date.now()) / 1000);
+      remaining = Math.max(0, left);
+      updateDisplay();
+      if(remaining === 0){
         clearInterval(iv); running=false;
         donemsg.textContent=t('timeUp');
         donemsg.classList.add('vis');
@@ -700,9 +713,9 @@
         playSound(selSound);
         setTimeout(()=>{ advanceStep(); }, 3000);
       }
-    },1000);
+    }, 250); // poll 4x/sec so display stays accurate even throttled
   }
-  function pauseTimer(){ clearInterval(iv); setPlayState(false); }
+  function pauseTimer(){ clearInterval(iv); remaining = Math.max(0, Math.round((timerEndTime - Date.now()) / 1000)); setPlayState(false); }
   function fullReset(){ clearInterval(iv); running=false; step=0; sessionsDone=0; finOverlay.classList.remove('show'); loadPhase(); }
 
   skipbtn.addEventListener('click',()=>{ clearInterval(iv); donemsg.classList.remove('vis'); advanceStep(); });
@@ -776,8 +789,12 @@
   const iconListSvg  = `<svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
   const iconCloseSvg = `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
+  const spacerEl = document.getElementById('spacer');
   function applyTaskPanelVisibility() {
     taskPanel.classList.toggle('hidden', !taskPanelVisible);
+    // spacer mirrors task panel: visible when panel is visible (balances left side so timer centres)
+    // when panel is hidden, spacer also hides → timer truly centred
+    spacerEl.classList.toggle('hidden', !taskPanelVisible);
     taskToggleBtn.innerHTML = taskPanelVisible ? iconCloseSvg : iconListSvg;
     taskToggleBtn.title = taskPanelVisible ? (lang==='en'?'Hide tasks':'Ocultar tareas') : (lang==='en'?'Show tasks':'Mostrar tareas');
   }
